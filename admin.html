@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel — AkunStore</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <style>
+    :root {
+      --bg: #0d0d12;
+      --surface: #12121a;
+      --card: #16161f;
+      --border: #1f1f2e;
+      --accent: #e8ff47;
+      --accent2: #ff6b47;
+      --blue: #4f9fff;
+      --green: #47ff8a;
+      --text: #eeeef5;
+      --muted: #6b6b80;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      padding: 8px 12px 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .sidebar-logo span { color: var(--accent); }
+    .sidebar-logo small {
+      display: block;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      transition: background 0.15s, color 0.15s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .nav-item.active { background: rgba(232,255,71,0.08); color: var(--accent); }
+
+    .sidebar-bottom {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* MAIN */
+    .main { padding: 32px 40px; overflow-y: auto; min-height: 100vh; }
+
+    .main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .main-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.8rem;
+      letter-spacing: -0.02em;
+    }
+    .main-sub { color: var(--muted); font-size: 0.875rem; margin-top: 4px; }
+
+    /* STATS CARDS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .stat-card-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .stat-card-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+    }
+    .stat-card-num.yellow { color: var(--accent); }
+    .stat-card-num.orange { color: var(--accent2); }
+    .stat-card-num.blue { color: var(--blue); }
+    .stat-card-num.green { color: var(--green); }
+
+    /* SECTION CARD */
+    .sec-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .sec-card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sec-card-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    /* BUTTON */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-accent { background: var(--accent); color: #0d0d12; font-weight: 600; }
+    .btn-accent:hover { box-shadow: 0 4px 20px rgba(232,255,71,0.25); }
+    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--muted); }
+    .btn-danger { background: rgba(255,107,71,0.1); color: var(--accent2); border: 1px solid rgba(255,107,71,0.2); }
+    .btn-sm { padding: 5px 12px; font-size: 0.75rem; }
+
+    /* PRODUCT FORM */
+    .product-form {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .form-input, .form-textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .form-input:focus, .form-textarea:focus { border-color: rgba(232,255,71,0.4); }
+    .form-textarea { resize: vertical; min-height: 80px; font-size: 0.85rem; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: var(--bg);
+      text-align: left;
+      padding: 12px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 0.875rem;
+      vertical-align: middle;
+    }
+    tr:hover td { background: rgba(255,255,255,0.015); }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+    }
+    .badge-green { background: rgba(71,255,138,0.1); color: var(--green); border: 1px solid rgba(71,255,138,0.2); }
+    .badge-orange { background: rgba(255,107,71,0.1); color: var(--accent2); border: 1px solid rgba(255,107,71,0.2); }
+    .badge-gray { background: rgba(107,107,128,0.1); color: var(--muted); border: 1px solid var(--border); }
+
+    /* STOCK INPUT INLINE */
+    .stock-accounts {
+      padding: 24px;
+    }
+    .stock-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .stock-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      outline: none;
+      width: 100%;
+    }
+    .stock-input:focus { border-color: rgba(232,255,71,0.3); }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 560px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      animation: modalIn 0.2s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .modal-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; margin-bottom: 4px; }
+    .modal-sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 24px; }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 0.85rem;
+      z-index: 999;
+      transform: translateY(60px);
+      opacity: 0;
+      transition: all 0.3s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { border-color: rgba(255,107,71,0.4); color: var(--accent2); }
+    .toast.success { border-color: rgba(71,255,138,0.3); color: var(--green); }
+
+    /* AUTH SCREEN */
+    .auth-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .auth-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      width: 360px;
+      text-align: center;
+    }
+    .auth-box h2 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem; margin-bottom: 8px; }
+    .auth-box p { color: var(--muted); font-size: 0.875rem; margin-bottom: 28px; }
+    .auth-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      margin-bottom: 12px;
+      outline: none;
+      font-size: 0.95rem;
+    }
+    .auth-input:focus { border-color: rgba(232,255,71,0.4); }
+
+    @media (max-width: 900px) {
+      body { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .main { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-box">
+    <div style="font-size:2rem;margin-bottom:12px">🔐</div>
+    <h2>Admin Login</h2>
+    <p>Masuk ke panel administrasi AkunStore</p>
+    <input class="auth-input" type="email" id="auth-email" placeholder="Email admin" autocomplete="email">
+    <input class="auth-input" type="password" id="auth-pass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn btn-accent" style="width:100%;padding:13px;font-size:0.9rem;margin-top:4px" onclick="doLogin()">Masuk</button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    Akun<span>Store</span>
+    <small>Admin Panel v1.0</small>
+  </div>
+  <button class="nav-item active" onclick="showTab('dashboard', this)">📊 Dashboard</button>
+  <button class="nav-item" onclick="showTab('products', this)">📦 Produk</button>
+  <button class="nav-item" onclick="showTab('stock', this)">💾 Input Stok</button>
+  <button class="nav-item" onclick="showTab('orders', this)">🧾 Pesanan</button>
+  <div class="sidebar-bottom">
+    <button class="nav-item" onclick="doLogout()">🚪 Logout</button>
+    <a href="index.html" style="display:block">
+      <button class="nav-item" style="color:var(--blue)">🌐 Lihat Toko</button>
+    </a>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main" id="main">
+  <!-- DASHBOARD TAB -->
+  <div id="tab-dashboard">
+    <div class="main-header">
+      <div>
+        <div class="main-title">Dashboard</div>
+        <div class="main-sub">Ringkasan performa toko kamu</div>
+      </div>
+      <button class="btn btn-ghost" onclick="loadAllData()">↻ Refresh</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-label">Total Produk</div>
+        <div class="stat-card-num yellow" id="d-products">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Total Stok</div>
+        <div class="stat-card-num blue" id="d-stock">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Total Pesanan</div>
+        <div class="stat-card-num green" id="d-orders">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Stok Habis</div>
+        <div class="stat-card-num orange" id="d-empty">—</div>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-card-header">
+        <div class="sec-card-title">Pesanan Terbaru</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pembeli</th>
+              <th>Produk</th>
+              <th>Status</th>
+              <th>Waktu</th>
+            </tr>
+          </thead>
+          <tbody id="recent-orders-body">
+            <tr><td colspan="4" style="color:var(--muted);text-align:center;padding:32px">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS TAB -->
+  <div id="tab-products" style="display:none">
+    <div class="main-header">
+      <div>
+        <div class="main-title">Produk</div>
+        <div class="main-sub">Kelola daftar produk yang dijual</div>
+      </div>
+      <button class="btn btn-accent" onclick="openProductModal()">+ Tambah Produk</button>
+    </div>
+    <div class="sec-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama Produk</th>
+              <th>Harga</th>
+              <th>Stok</th>
+              <th>Deskripsi</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="products-body">
+            <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:32px">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOCK TAB -->
+  <div id="tab-stock" style="display:none">
+    <div class="main-header">
+      <div>
+        <div class="main-title">Input Stok Akun</div>
+        <div class="main-sub">Tambahkan akun-akun baru ke produk</div>
+      </div>
+      <button class="btn btn-accent" onclick="addAccountRow()">+ Tambah Baris</button>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-card-header">
+        <div class="sec-card-title">Pilih Produk & Input Akun</div>
+      </div>
+      <div style="padding:24px">
+        <div class="form-group" style="margin-bottom:20px">
+          <label class="form-label">Pilih Produk</label>
+          <select class="form-input" id="stock-product-select" onchange="loadAccountsForProduct()">
+            <option value="">-- Pilih produk --</option>
+          </select>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-family:DM Mono,monospace;font-size:0.75rem;color:var(--muted)">Username/Email → Password → Catatan (opsional)</span>
+        </div>
+        <div id="account-rows"></div>
+
+        <div style="margin-top:16px;display:flex;gap:12px">
+          <button class="btn btn-accent" onclick="saveAccounts()">💾 Simpan Akun</button>
+          <button class="btn btn-ghost" onclick="clearRows()">🗑 Bersihkan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXISTING ACCOUNTS -->
+    <div class="sec-card" id="existing-accounts-card" style="display:none">
+      <div class="sec-card-header">
+        <div class="sec-card-title">Akun Tersimpan <span id="existing-count" style="color:var(--muted);font-weight:400"></span></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Username/Email</th>
+              <th>Password</th>
+              <th>Catatan</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="existing-accounts-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS TAB -->
+  <div id="tab-orders" style="display:none">
+    <div class="main-header">
+      <div>
+        <div class="main-title">Semua Pesanan</div>
+        <div class="main-sub">Riwayat transaksi toko</div>
+      </div>
+    </div>
+    <div class="sec-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pembeli</th>
+              <th>Email</th>
+              <th>Produk</th>
+              <th>Akun Dikirim</th>
+              <th>Waktu</th>
+            </tr>
+          </thead>
+          <tbody id="all-orders-body">
+            <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:32px">Memuat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- PRODUCT MODAL -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-title" id="pm-title">Tambah Produk</div>
+    <div class="modal-sub" id="pm-sub">Produk baru akan muncul di halaman toko</div>
+    <div class="product-form" style="padding:0;margin-bottom:20px">
+      <div class="form-group">
+        <label class="form-label">Nama Produk *</label>
+        <input class="form-input" id="pm-name" placeholder="e.g. Netflix Premium">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Harga (Rp) *</label>
+        <input class="form-input" id="pm-price" type="number" placeholder="25000">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Deskripsi</label>
+        <textarea class="form-textarea" id="pm-desc" placeholder="Deskripsi singkat produk..."></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <button class="btn btn-ghost" onclick="closeProductModal()">Batal</button>
+      <button class="btn btn-accent" onclick="saveProduct()" id="pm-save-btn">Simpan Produk</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// FIREBASE CONFIG — Ganti dengan config kamu
+// ═══════════════════════════════════════════
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyATTNNn1r1ORYTFWdljzd4dessh8t33SbI",
+  authDomain: "ppk-ormawa-42e49.firebaseapp.com",
+  databaseURL: "https://ppk-ormawa-42e49-default-rtdb.firebaseio.com",
+  projectId: "ppk-ormawa-42e49",
+  storageBucket: "ppk-ormawa-42e49.firebasestorage.app",
+  messagingSenderId: "629446223042",
+  appId: "1:629446223042:web:092fe22b2bdb868ba2c75b",
+  
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('auth-screen').style.display = 'none';
+    loadAllData();
+  }
+});
+
+function doLogin() {
+  const email = document.getElementById('auth-email').value;
+  const pass = document.getElementById('auth-pass').value;
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(() => showToast('Login berhasil!', 'success'))
+    .catch(e => showToast('Login gagal: ' + e.message, 'error'));
+}
+
+function doLogout() {
+  auth.signOut().then(() => document.getElementById('auth-screen').style.display = 'flex');
+}
+
+// ═══════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
+  document.getElementById('tab-' + name).style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (name === 'stock') {
+    loadProductsForSelect();
+    // Pastikan minimal 1 baris input selalu ada
+    if (document.getElementById('account-rows').children.length === 0) addAccountRow();
+  }
+  if (name === 'orders') loadAllOrders();
+  if (name === 'products') loadProductsTable();
+}
+
+// ═══════════════════════════════════════════
+// LOAD ALL DATA (DASHBOARD)
+// ═══════════════════════════════════════════
+async function loadAllData() {
+  try {
+    const [prodSnap, orderSnap] = await Promise.all([
+      db.collection('products').get(),
+      db.collection('orders').orderBy('createdAt', 'desc').limit(10).get()
+    ]);
+
+    const products = [];
+    let totalStock = 0, emptyCount = 0;
+    prodSnap.forEach(d => {
+      const p = { id: d.id, ...d.data() };
+      products.push(p);
+      totalStock += (p.stock || 0);
+      if ((p.stock || 0) === 0) emptyCount++;
+    });
+
+    document.getElementById('d-products').textContent = products.length;
+    document.getElementById('d-stock').textContent = totalStock;
+    document.getElementById('d-orders').textContent = orderSnap.size;
+    document.getElementById('d-empty').textContent = emptyCount;
+
+    const tbody = document.getElementById('recent-orders-body');
+    if (orderSnap.empty) {
+      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:32px">Belum ada pesanan</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = '';
+    orderSnap.forEach(d => {
+      const o = d.data();
+      const time = o.createdAt?.toDate?.() ? o.createdAt.toDate().toLocaleString('id-ID') : '—';
+      tbody.innerHTML += `<tr>
+        <td><strong>${esc(o.buyerName)}</strong></td>
+        <td>${esc(o.productName)}</td>
+        <td><span class="badge badge-green">✓ Selesai</span></td>
+        <td style="color:var(--muted);font-family:DM Mono,monospace;font-size:0.75rem">${time}</td>
+      </tr>`;
+    });
+
+    // Also refresh products table if visible
+    if (document.getElementById('tab-products').style.display !== 'none') loadProductsTable();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════
+// PRODUCTS TABLE
+// ═══════════════════════════════════════════
+async function loadProductsTable() {
+  const tbody = document.getElementById('products-body');
+  tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:32px">Memuat...</td></tr>`;
+  const snap = await db.collection('products').get();
+  if (snap.empty) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:32px">Belum ada produk. Tambahkan produk baru.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = '';
+  snap.forEach(d => {
+    const p = { id: d.id, ...d.data() };
+    const stockClass = (p.stock || 0) === 0 ? 'badge-gray' : (p.stock || 0) <= 3 ? 'badge-orange' : 'badge-green';
+    tbody.innerHTML += `<tr>
+      <td><strong>${esc(p.name)}</strong></td>
+      <td style="font-family:DM Mono,monospace">Rp${Number(p.price||0).toLocaleString('id-ID')}</td>
+      <td><span class="badge ${stockClass}">${p.stock || 0}</span></td>
+      <td style="color:var(--muted);font-size:0.8rem">${esc(p.description || '—')}</td>
+      <td>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick='openEditProduct("${p.id}", ${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}', '${esc(p.name)}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+}
+
+// ═══════════════════════════════════════════
+// PRODUCT MODAL
+// ═══════════════════════════════════════════
+let editingProductId = null;
+
+function openProductModal() {
+  editingProductId = null;
+  document.getElementById('pm-title').textContent = 'Tambah Produk';
+  document.getElementById('pm-sub').textContent = 'Produk baru akan muncul di halaman toko';
+  document.getElementById('pm-name').value = '';
+  document.getElementById('pm-price').value = '';
+  document.getElementById('pm-desc').value = '';
+  document.getElementById('pm-save-btn').textContent = 'Simpan Produk';
+  document.getElementById('product-modal').classList.add('active');
+}
+
+function openEditProduct(id, data) {
+  editingProductId = id;
+  document.getElementById('pm-title').textContent = 'Edit Produk';
+  document.getElementById('pm-sub').textContent = 'Ubah informasi produk';
+  document.getElementById('pm-name').value = data.name || '';
+  document.getElementById('pm-price').value = data.price || '';
+  document.getElementById('pm-desc').value = data.description || '';
+  document.getElementById('pm-save-btn').textContent = 'Update Produk';
+  document.getElementById('product-modal').classList.add('active');
+}
+
+function closeProductModal() {
+  document.getElementById('product-modal').classList.remove('active');
+}
+
+async function saveProduct() {
+  const name = document.getElementById('pm-name').value.trim();
+  const price = parseInt(document.getElementById('pm-price').value);
+  const description = document.getElementById('pm-desc').value.trim();
+
+  if (!name || !price) { showToast('Nama dan harga wajib diisi!', 'error'); return; }
+
+  const btn = document.getElementById('pm-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+
+  try {
+    if (editingProductId) {
+      await db.collection('products').doc(editingProductId).update({ name, price, description, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      showToast('Produk diupdate!', 'success');
+    } else {
+      await db.collection('products').add({ name, price, description, stock: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      showToast('Produk ditambahkan!', 'success');
+    }
+    closeProductModal();
+    loadProductsTable();
+    loadAllData();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = editingProductId ? 'Update Produk' : 'Simpan Produk';
+  }
+}
+
+async function deleteProduct(id, name) {
+  if (!confirm(`Hapus produk "${name}"?\nSemua akun yang tersimpan juga akan terhapus!`)) return;
+  try {
+    // Delete all accounts subcollection
+    const accs = await db.collection('products').doc(id).collection('accounts').get();
+    const batch = db.batch();
+    accs.forEach(d => batch.delete(d.ref));
+    batch.delete(db.collection('products').doc(id));
+    await batch.commit();
+    showToast('Produk dihapus.', 'success');
+    loadProductsTable();
+    loadAllData();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════
+// STOCK INPUT
+// ═══════════════════════════════════════════
+async function loadProductsForSelect() {
+  const sel = document.getElementById('stock-product-select');
+  sel.innerHTML = '<option value="">-- Pilih produk --</option>';
+  const snap = await db.collection('products').get();
+  snap.forEach(d => {
+    const p = d.data();
+    sel.innerHTML += `<option value="${d.id}">${esc(p.name)} (stok: ${p.stock || 0})</option>`;
+  });
+}
+
+function loadAccountsForProduct() {
+  const id = document.getElementById('stock-product-select').value;
+  if (!id) {
+    document.getElementById('existing-accounts-card').style.display = 'none';
+    return;
+  }
+  loadExistingAccounts(id);
+}
+
+function addAccountRow() {
+  const div = document.createElement('div');
+  div.className = 'stock-item';
+  div.innerHTML = `
+    <input class="stock-input acc-user" placeholder="Username / Email" />
+    <input class="stock-input acc-pass" placeholder="Password" />
+    <input class="stock-input acc-note" placeholder="Catatan (opsional)" />
+    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>
+  `;
+  document.getElementById('account-rows').appendChild(div);
+}
+
+function clearRows() {
+  document.getElementById('account-rows').innerHTML = '';
+  addAccountRow();
+}
+
+async function saveAccounts() {
+  const productId = document.getElementById('stock-product-select').value;
+  if (!productId) { showToast('Pilih produk dulu!', 'error'); return; }
+
+  const rows = document.querySelectorAll('.stock-item');
+  const accounts = [];
+  rows.forEach(row => {
+    const user = row.querySelector('.acc-user').value.trim();
+    const pass = row.querySelector('.acc-pass').value.trim();
+    const note = row.querySelector('.acc-note').value.trim();
+    if (user && pass) accounts.push({ username: user, password: pass, notes: note, sold: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  });
+
+  if (accounts.length === 0) { showToast('Tidak ada akun valid untuk disimpan!', 'error'); return; }
+
+  try {
+    const batch = db.batch();
+    const prodRef = db.collection('products').doc(productId);
+    accounts.forEach(acc => {
+      batch.set(prodRef.collection('accounts').doc(), acc);
+    });
+    batch.update(prodRef, { stock: firebase.firestore.FieldValue.increment(accounts.length) });
+    await batch.commit();
+    showToast(`${accounts.length} akun berhasil disimpan!`, 'success');
+    clearRows();
+    loadExistingAccounts(productId);
+    loadProductsForSelect();
+    loadAllData();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function loadExistingAccounts(productId) {
+  const card = document.getElementById('existing-accounts-card');
+  const tbody = document.getElementById('existing-accounts-body');
+  card.style.display = 'block';
+  tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Memuat...</td></tr>';
+
+  const snap = await db.collection('products').doc(productId).collection('accounts').get();
+  document.getElementById('existing-count').textContent = `(${snap.size} akun)`;
+
+  if (snap.empty) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Belum ada akun tersimpan</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  snap.forEach(d => {
+    const a = d.data();
+    const statusClass = a.sold ? 'badge-gray' : 'badge-green';
+    const statusLabel = a.sold ? 'Terjual' : 'Tersedia';
+    tbody.innerHTML += `<tr>
+      <td style="font-family:DM Mono,monospace;font-size:0.8rem">${esc(a.username || '—')}</td>
+      <td style="font-family:DM Mono,monospace;font-size:0.8rem">${esc(a.password || '—')}</td>
+      <td style="color:var(--muted);font-size:0.8rem">${esc(a.notes || '—')}</td>
+      <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+      <td>
+        ${!a.sold ? `<button class="btn btn-danger btn-sm" onclick="deleteAccount('${productId}', '${d.id}')">🗑</button>` : ''}
+      </td>
+    </tr>`;
+  });
+}
+
+async function deleteAccount(productId, accountId) {
+  if (!confirm('Hapus akun ini?')) return;
+  try {
+    await db.collection('products').doc(productId).collection('accounts').doc(accountId).delete();
+    await db.collection('products').doc(productId).update({ stock: firebase.firestore.FieldValue.increment(-1) });
+    showToast('Akun dihapus.', 'success');
+    loadExistingAccounts(productId);
+    loadProductsForSelect();
+    loadAllData();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════
+// ALL ORDERS
+// ═══════════════════════════════════════════
+async function loadAllOrders() {
+  const tbody = document.getElementById('all-orders-body');
+  tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:32px">Memuat...</td></tr>`;
+  try {
+    const snap = await db.collection('orders').orderBy('createdAt', 'desc').get();
+    if (snap.empty) {
+      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:32px">Belum ada pesanan</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = '';
+    snap.forEach(d => {
+      const o = d.data();
+      const time = o.createdAt?.toDate?.() ? o.createdAt.toDate().toLocaleString('id-ID') : '—';
+      const acc = o.accountDelivered || {};
+      tbody.innerHTML += `<tr>
+        <td><strong>${esc(o.buyerName)}</strong></td>
+        <td style="color:var(--muted);font-size:0.8rem">${esc(o.buyerEmail)}</td>
+        <td>${esc(o.productName)}</td>
+        <td style="font-family:DM Mono,monospace;font-size:0.75rem;color:var(--accent)">${esc(acc.username || '—')}</td>
+        <td style="color:var(--muted);font-family:DM Mono,monospace;font-size:0.75rem">${time}</td>
+      </tr>`;
+    });
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type = '') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
